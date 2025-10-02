@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jonny Litten - Creative Technologist</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #fafafa;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+        
+        header {
+            margin-bottom: 80px;
+        }
+        
+        h1 {
+            font-size: 42px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #111;
+        }
+        
+        .bio {
+            font-size: 18px;
+            color: #555;
+            max-width: 600px;
+            margin-bottom: 30px;
+        }
+        
+        .contact {
+            display: inline-block;
+            padding: 12px 28px;
+            background: #111;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+        
+        .contact:hover {
+            background: #333;
+        }
+        
+        .projects {
+            display: grid;
+            gap: 80px;
+        }
+        
+        .project {
+            border-top: 1px solid #ddd;
+            padding-top: 40px;
+        }
+        
+        .project h2 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #111;
+        }
+        
+        .project-description {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 24px;
+            line-height: 1.7;
+        }
+        
+        .project-demo {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fff;
+        }
+        
+        footer {
+            margin-top: 100px;
+            padding-top: 40px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 32px;
+            }
+            
+            .bio {
+                font-size: 16px;
+            }
+            
+            .project h2 {
+                font-size: 24px;
+            }
+            
+            .project-demo {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Jonny Litten</h1>
+            <p class="bio">Creative technologist and audio engineer with 10+ years building interactive systems combining computation, mathematics, and sound.</p>
+            <a href="mailto:jk@litten.org" class="contact">Get in touch</a>
+        </header>
+        
+        <div class="projects">
+            <div class="project">
+                <h2>Harmonic Constellation</h2>
+                <p class="project-description">Gravitational music generator combining sacred geometry, n-body physics simulation, and real-time audio synthesis. Users spawn orbital bodies along parametric curves (Golden Spiral, Fibonacci, Lissajous, Rose curves) that generate harmonic interactions through gravitational forces. Implements proper scale theory with modal selections and MIDI output support.</p>
+                <iframe class="project-demo" src="harmonic-constellation-2.html" title="Harmonic Constellation Demo"></iframe>
+            </div>
+            
+            <div class="project">
+                <h2>Topology Morpher</h2>
+                <p class="project-description">Interactive 3D parametric surface visualizer using Three.js. Real-time morphing between mathematical surfaces (torus, sphere, Klein bottle) with deformation parameters. Maps Gaussian curvature to audio frequencies for sonification of geometric properties. Demonstrates understanding of differential geometry and audio-visual synthesis.</p>
+                <iframe class="project-demo" src="topology-morpher.html" title="Topology Morpher Demo"></iframe>
+            </div>
+            
+            <div class="project">
+                <h2>Pattern Recognition Mirror</h2>
+                <p class="project-description">Behavioral tracking system that learns user movement patterns through real-time analysis. Captures velocity profiles, directional preferences, spatial density, and gesture phrases, then generates audio-visual playback of the learned signature. Implements pattern recognition algorithms for motion analysis and sonification.</p>
+                <iframe class="project-demo" src="pattern-recognition-mirror.html" title="Pattern Recognition Mirror Demo"></iframe>
+            </div>
+            
+            <div class="project">
+                <h2>Cognitive Crystallization Garden</h2>
+                <p class="project-description">Interactive particle system where information particles flow toward nucleation points to form crystalline network structures. Features attention heatmap tracking, spontaneous crystal formation, and interference pattern generation. Demonstrates complex state management and real-time physics simulation.</p>
+                <iframe class="project-demo" src="cognitive-crystallization-garden.html" title="Cognitive Crystallization Garden Demo"></iframe>
+            </div>
+        </div>
+        
+        <footer>
+            <p>&copy; 2025 Jonny Litten</p>
+        </footer>
+    </div>
+</body>
+</html>

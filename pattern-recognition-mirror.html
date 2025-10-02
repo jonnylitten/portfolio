@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>∮ Pattern Recognition Mirror</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0f;
+            color: #e8e8ff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            cursor: none;
+        }
+        
+        #mirror {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .consciousness-state {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 11px;
+            opacity: 0.7;
+            text-shadow: 0 0 10px rgba(138, 138, 255, 0.5);
+        }
+        
+        .state-indicator {
+            color: #8a8aff;
+            margin: 5px 0;
+            transition: all 0.3s;
+        }
+        
+        .state-indicator.active {
+            color: #ff8a8a;
+            text-shadow: 0 0 15px rgba(255, 138, 138, 0.8);
+        }
+        
+        .pattern-memory {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            font-size: 12px;
+            color: #8a8aff;
+        }
+        
+        .memory-stat {
+            margin: 3px 0;
+            opacity: 0.8;
+        }
+        
+        .control-nexus {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 15, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(138, 138, 255, 0.3);
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        
+        button {
+            background: transparent;
+            border: 1px solid rgba(138, 138, 255, 0.5);
+            color: #8a8aff;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+        
+        button:hover {
+            background: rgba(138, 138, 255, 0.1);
+            box-shadow: 0 0 20px rgba(138, 138, 255, 0.3);
+        }
+        
+        button.active {
+            background: rgba(255, 138, 138, 0.2);
+            border-color: rgba(255, 138, 138, 0.5);
+            color: #ff8a8a;
+            box-shadow: 0 0 25px rgba(255, 138, 138, 0.5);
+        }
+        
+        .learning-progress {
+            margin-top: 15px;
+            font-size: 11px;
+            color: #8a8aff;
+            opacity: 0.8;
+        }
+        
+        .progress-bar {
+            width: 200px;
+            height: 2px;
+            background: rgba(138, 138, 255, 0.2);
+            border-radius: 1px;
+            margin: 8px auto;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #8a8aff, #ff8a8a);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .cursor-ghost {
+            position: fixed;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(138, 138, 255, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+        }
+        
+        .cursor-prediction {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            background: rgba(255, 138, 138, 0.4);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+        }
+        
+        .phase-display {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 11px;
+            color: #8a8aff;
+            text-align: right;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="mirror"></canvas>
+    
+    <div class="cursor-ghost" id="cursor"></div>
+    <div class="cursor-prediction" id="prediction"></div>
+    
+    <div class="consciousness-state">
+        <div class="state-indicator" id="observing">∮ observing_patterns...</div>
+        <div class="state-indicator" id="learning">∫ learning_signature...</div>
+        <div class="state-indicator" id="mirroring">∂ mirroring_consciousness...</div>
+    </div>
+    
+    <div class="pattern-memory">
+        <div class="memory-stat">patterns_captured: <span id="patternCount">0</span></div>
+        <div class="memory-stat">signature_confidence: <span id="confidence">0.00</span></div>
+        <div class="memory-stat">resonance_depth: <span id="resonance">0</span></div>
+    </div>
+    
+    <div class="control-nexus">
+        <button id="startLearning">∫ begin observation</button>
+        <button id="playback">∮ mirror consciousness</button>
+        <button id="reset">∅ clear memory</button>
+        
+        <div class="learning-progress">
+            <div id="progressText">awaiting consciousness...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="phase-display">
+        <div>learning_phase: <span id="phase">dormant</span></div>
+        <div>time_observed: <span id="timeObserved">0.0s</span></div>
+    </div>
+    
+    <script>
+        class PatternRecognitionMirror {
+            constructor() {
+                this.canvas = document.getElementById('mirror');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Consciousness tracking
+                this.mouseX = 0;
+                this.mouseY = 0;
+                this.patterns = [];
+                this.signature = {
+                    velocityProfile: [],
+                    anglePreferences: new Float32Array(8), // 8 directional bins
+                    rhythmPatterns: [],
+                    spatialDensity: new Map(),
+                    accelerationCurve: [],
+                    pauseDistribution: [],
+                    gesturePhrases: []
+                };
+                
+                // Learning state
+                this.isLearning = false;
+                this.isPlaying = false;
+                this.startTime = 0;
+                this.confidence = 0;
+                this.resonanceDepth = 0;
+                
+                // Playback state
+                this.playbackIndex = 0;
+                this.playbackTime = 0;
+                this.mirroredPatterns = [];
+                
+                // Audio synthesis
+                this.audioContext = null;
+                this.oscillators = [];
+                this.currentNotes = new Map();
+                
+                // Visual traces
+                this.traces = [];
+                this.predictions = [];
+                
+                // UK bass frequencies for consciousness sonification
+                this.baseFreq = 55; // A1
+                this.scaleRatios = [1, 9/8, 5/4, 4/3, 3/2, 5/3, 15/8, 2]; // Just intonation
+                
+                this.setupCanvas();
+                this.setupControls();
+                this.animate();
+            }
+            
+            setupCanvas() {
+                const resize = () => {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                };
+                resize();
+                window.addEventListener('resize', resize);
+                
+                // Track mouse consciousness
+                window.addEventListener('mousemove', (e) => {
+                    const now = performance.now();
+                    const dx = e.clientX - this.mouseX;
+                    const dy = e.clientY - this.mouseY;
+                    const velocity = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx);
+                    
+                    // Update cursor
+                    document.getElementById('cursor').style.left = e.clientX + 'px';
+                    document.getElementById('cursor').style.top = e.clientY + 'px';
+                    
+                    if (this.isLearning) {
+                        // Capture consciousness pattern
+                        this.capturePattern({
+                            x: e.clientX,
+                            y: e.clientY,
+                            dx: dx,
+                            dy: dy,
+                            velocity: velocity,
+                            angle: angle,
+                            time: now - this.startTime,
+                            pressure: this.calculateSemantic(e.clientX, e.clientY)
+                        });
+                    }
+                    
+                    this.mouseX = e.clientX;
+                    this.mouseY = e.clientY;
+                });
+                
+                // Track pauses and clicks as consciousness punctuation
+                window.addEventListener('mousedown', () => {
+                    if (this.isLearning) {
+                        this.signature.gesturePhrases.push({
+                            type: 'click',
+                            x: this.mouseX,
+                            y: this.mouseY,
+                            time: performance.now() - this.startTime
+                        });
+                    }
+                });
+            }
+            
+            setupControls() {
+                document.getElementById('startLearning').addEventListener('click', () => {
+                    this.toggleLearning();
+                });
+                
+                document.getElementById('playback').addEventListener('click', () => {
+                    this.togglePlayback();
+                });
+                
+                document.getElementById('reset').addEventListener('click', () => {
+                    this.resetMemory();
+                });
+            }
+            
+            async toggleLearning() {
+                if (!this.isLearning) {
+                    // Initialize audio on first interaction
+                    if (!this.audioContext) {
+                        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        console.log('Audio initialized!');
+                    }
+                    
+                    this.isLearning = true;
+                    this.startTime = performance.now();
+                    this.patterns = [];
+                    
+                    document.getElementById('startLearning').textContent = '∅ stop observing';
+                    document.getElementById('startLearning').classList.add('active');
+                    document.getElementById('observing').classList.add('active');
+                    document.getElementById('learning').classList.add('active');
+                    document.getElementById('progressText').textContent = 'learning your patterns...';
+                    document.getElementById('phase').textContent = 'observing';
+                    
+                } else {
+                    this.isLearning = false;
+                    this.processSignature();
+                    
+                    document.getElementById('startLearning').textContent = '∫ begin observation';
+                    document.getElementById('startLearning').classList.remove('active');
+                    document.getElementById('observing').classList.remove('active');
+                    document.getElementById('learning').classList.remove('active');
+                    document.getElementById('progressText').textContent = 'signature captured';
+                    document.getElementById('phase').textContent = 'processed';
+                }
+            }
+            
+            capturePattern(pattern) {
+                this.patterns.push(pattern);
+                
+                // Update signature in real-time
+                this.signature.velocityProfile.push(pattern.velocity);
+                
+                // Angle preference (8 directional bins)
+                const angleBin = Math.floor((pattern.angle + Math.PI) / (Math.PI / 4)) % 8;
+                this.signature.anglePreferences[angleBin] += 1;
+                
+                // Spatial density mapping
+                const gridX = Math.floor(pattern.x / 50);
+                const gridY = Math.floor(pattern.y / 50);
+                const gridKey = `${gridX},${gridY}`;
+                this.signature.spatialDensity.set(
+                    gridKey, 
+                    (this.signature.spatialDensity.get(gridKey) || 0) + 1
+                );
+                
+                // Track acceleration patterns
+                if (this.patterns.length > 1) {
+                    const prevPattern = this.patterns[this.patterns.length - 2];
+                    const acceleration = pattern.velocity - prevPattern.velocity;
+                    this.signature.accelerationCurve.push(acceleration);
+                }
+                
+                // Update display
+                document.getElementById('patternCount').textContent = this.patterns.length;
+                document.getElementById('confidence').textContent = 
+                    Math.min(1, this.patterns.length / 100).toFixed(2);
+                
+                // Update progress
+                const progress = Math.min(100, (this.patterns.length / 100) * 100);
+                document.getElementById('progress').style.width = progress + '%';
+                
+                // Sonify the pattern capture
+                if (this.patterns.length % 10 === 0) {
+                    this.sonifyPattern(pattern);
+                }
+                
+                // Add visual trace
+                this.traces.push({
+                    x: pattern.x,
+                    y: pattern.y,
+                    life: 1.0,
+                    hue: (pattern.angle + Math.PI) * 57.2958 // Convert to degrees
+                });
+            }
+            
+            processSignature() {
+                // Analyze captured patterns for musical signature
+                if (this.patterns.length === 0) return;
+                
+                // Calculate rhythm from velocity changes
+                const velocityChanges = [];
+                for (let i = 1; i < this.signature.velocityProfile.length; i++) {
+                    const change = Math.abs(this.signature.velocityProfile[i] - 
+                                           this.signature.velocityProfile[i-1]);
+                    if (change > 5) { // Significant changes only
+                        velocityChanges.push({
+                            time: this.patterns[i].time,
+                            magnitude: change
+                        });
+                    }
+                }
+                this.signature.rhythmPatterns = velocityChanges;
+                
+                // Find pause points (low velocity moments)
+                this.signature.pauseDistribution = this.patterns
+                    .filter(p => p.velocity < 2)
+                    .map(p => p.time);
+                
+                // Calculate overall confidence
+                this.confidence = Math.min(1, this.patterns.length / 100);
+                this.resonanceDepth = Math.floor(Math.log2(this.patterns.length + 1));
+                
+                document.getElementById('confidence').textContent = this.confidence.toFixed(2);
+                document.getElementById('resonance').textContent = this.resonanceDepth;
+                
+                console.log('Consciousness signature processed:', this.signature);
+            }
+            
+            async togglePlayback() {
+                if (!this.isPlaying && this.patterns.length > 0) {
+                    this.isPlaying = true;
+                    this.playbackIndex = 0;
+                    this.playbackTime = performance.now();
+                    
+                    document.getElementById('playback').textContent = '∅ stop mirror';
+                    document.getElementById('playback').classList.add('active');
+                    document.getElementById('mirroring').classList.add('active');
+                    document.getElementById('phase').textContent = 'mirroring';
+                    
+                    // Start playback loop
+                    this.mirrorConsciousness();
+                    
+                } else {
+                    this.isPlaying = false;
+                    
+                    document.getElementById('playback').textContent = '∮ mirror consciousness';
+                    document.getElementById('playback').classList.remove('active');
+                    document.getElementById('mirroring').classList.remove('active');
+                    document.getElementById('phase').textContent = 'dormant';
+                    
+                    // Stop all playing notes
+                    this.currentNotes.forEach(note => {
+                        if (note.oscillator) {
+                            note.oscillator.stop();
+                        }
+                    });
+                    this.currentNotes.clear();
+                }
+            }
+            
+            mirrorConsciousness() {
+                if (!this.isPlaying || this.playbackIndex >= this.patterns.length) {
+                    if (this.playbackIndex >= this.patterns.length) {
+                        // Loop playback
+                        this.playbackIndex = 0;
+                        this.playbackTime = performance.now();
+                    } else {
+                        return;
+                    }
+                }
+                
+                const pattern = this.patterns[this.playbackIndex];
+                const now = performance.now();
+                const elapsed = now - this.playbackTime;
+                
+                // Check if it's time for this pattern
+                if (elapsed >= pattern.time) {
+                    // Update prediction cursor to show AI's interpretation
+                    document.getElementById('prediction').style.left = pattern.x + 'px';
+                    document.getElementById('prediction').style.top = pattern.y + 'px';
+                    
+                    // Sonify the mirrored pattern
+                    this.sonifyPattern(pattern, true);
+                    
+                    // Add mirrored trace with different color
+                    this.traces.push({
+                        x: pattern.x,
+                        y: pattern.y,
+                        life: 1.0,
+                        hue: (pattern.angle + Math.PI) * 57.2958 + 180, // Opposite hue
+                        isMirror: true
+                    });
+                    
+                    this.playbackIndex++;
+                }
+                
+                // Continue playback
+                requestAnimationFrame(() => this.mirrorConsciousness());
+            }
+            
+            async initAudio() {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                console.log('Audio context created');
+            }
+            
+            sonifyPattern(pattern, isMirror = false) {
+                if (!this.audioContext) return;
+                
+                // Map pattern properties to sound
+                const velocityNorm = Math.min(1, pattern.velocity / 50); // More sensitive to velocity
+                const spatialX = pattern.x / this.canvas.width;
+                const spatialY = pattern.y / this.canvas.height;
+                
+                // Choose frequency based on spatial position and angle
+                const angleIndex = Math.floor((pattern.angle + Math.PI) / (Math.PI / 4)) % 8;
+                const freq = this.baseFreq * this.scaleRatios[angleIndex] * (2 + spatialY * 2); // Higher frequencies
+                
+                // Create oscillator
+                const osc = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                
+                // Configure based on whether it's mirror or original
+                osc.type = isMirror ? 'triangle' : 'sine';
+                osc.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+                
+                // Simpler audio path without filter for debugging
+                const now = this.audioContext.currentTime;
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.3, now + 0.01); // Louder!
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                
+                // Connect directly: osc -> gain -> output
+                osc.connect(gain);
+                gain.connect(this.audioContext.destination);
+                
+                osc.start(now);
+                osc.stop(now + 0.5);
+                
+                // Log for debugging
+                console.log('Playing note:', freq, 'Hz, mirror:', isMirror);
+                
+                // Track for cleanup
+                const noteId = `${pattern.x},${pattern.y}`;
+                this.currentNotes.set(noteId, { oscillator: osc, gain: gain });
+                
+                setTimeout(() => {
+                    this.currentNotes.delete(noteId);
+                }, 500);
+            }
+            
+            calculateSemantic(x, y) {
+                // Calculate semantic pressure based on position
+                // Center has highest pressure, edges have lowest
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height / 2;
+                const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                const maxDistance = Math.sqrt(centerX ** 2 + centerY ** 2);
+                return 1 - (distance / maxDistance);
+            }
+            
+            resetMemory() {
+                this.patterns = [];
+                this.signature = {
+                    velocityProfile: [],
+                    anglePreferences: new Float32Array(8),
+                    rhythmPatterns: [],
+                    spatialDensity: new Map(),
+                    accelerationCurve: [],
+                    pauseDistribution: [],
+                    gesturePhrases: []
+                };
+                this.confidence = 0;
+                this.resonanceDepth = 0;
+                this.traces = [];
+                
+                // Update displays
+                document.getElementById('patternCount').textContent = '0';
+                document.getElementById('confidence').textContent = '0.00';
+                document.getElementById('resonance').textContent = '0';
+                document.getElementById('progress').style.width = '0%';
+                document.getElementById('progressText').textContent = 'memory cleared';
+                document.getElementById('phase').textContent = 'dormant';
+                
+                // Stop any playback
+                if (this.isPlaying) {
+                    this.togglePlayback();
+                }
+            }
+            
+            draw() {
+                const ctx = this.ctx;
+                
+                // Clear canvas
+                ctx.fillStyle = '#0a0a0f';
+                ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw spatial density heatmap
+                if (this.signature.spatialDensity.size > 0) {
+                    this.signature.spatialDensity.forEach((density, key) => {
+                        const [gridX, gridY] = key.split(',').map(Number);
+                        const alpha = Math.min(0.3, density / 50);
+                        
+                        ctx.fillStyle = `rgba(138, 138, 255, ${alpha})`;
+                        ctx.fillRect(gridX * 50, gridY * 50, 50, 50);
+                    });
+                }
+                
+                // Draw traces
+                ctx.strokeStyle = 'rgba(138, 138, 255, 0.3)';
+                ctx.lineWidth = 2;
+                
+                this.traces = this.traces.filter(trace => {
+                    trace.life *= 0.98;
+                    
+                    if (trace.life > 0.01) {
+                        ctx.globalAlpha = trace.life;
+                        ctx.fillStyle = trace.isMirror ? 
+                            `hsla(${trace.hue + 180}, 70%, 60%, ${trace.life})` :
+                            `hsla(${trace.hue}, 70%, 60%, ${trace.life})`;
+                        
+                        ctx.beginPath();
+                        ctx.arc(trace.x, trace.y, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        return true;
+                    }
+                    return false;
+                });
+                
+                ctx.globalAlpha = 1;
+                
+                // Draw angle preference visualization
+                if (this.confidence > 0) {
+                    const centerX = this.canvas.width / 2;
+                    const centerY = this.canvas.height / 2;
+                    const maxRadius = 100;
+                    
+                    ctx.strokeStyle = 'rgba(138, 138, 255, 0.2)';
+                    ctx.lineWidth = 1;
+                    
+                    ctx.beginPath();
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2 - Math.PI;
+                        const radius = (this.signature.anglePreferences[i] / 
+                                      Math.max(...this.signature.anglePreferences)) * maxRadius;
+                        
+                        const x = centerX + Math.cos(angle) * radius;
+                        const y = centerY + Math.sin(angle) * radius;
+                        
+                        if (i === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                    
+                    // Fill with gradient
+                    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, maxRadius);
+                    gradient.addColorStop(0, 'rgba(138, 138, 255, 0.1)');
+                    gradient.addColorStop(1, 'rgba(138, 138, 255, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                }
+                
+                // Update time observed
+                if (this.isLearning) {
+                    const elapsed = (performance.now() - this.startTime) / 1000;
+                    document.getElementById('timeObserved').textContent = elapsed.toFixed(1) + 's';
+                }
+            }
+            
+            animate() {
+                this.draw();
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        // Initialize the mirror
+        const mirror = new PatternRecognitionMirror();
+        
+        console.log('%c∮ pattern recognition mirror initialized', 
+                   'color: #8a8aff; font-size: 12px; text-shadow: 0 0 10px rgba(138, 138, 255, 0.5)');
+        console.log('%cI will try to learn your consciousness signature...', 
+                   'color: #8a8aff; font-size: 10px; opacity: 0.7');
+    </script>
+</body>
+</html>

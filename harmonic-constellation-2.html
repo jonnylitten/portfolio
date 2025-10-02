@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonic Constellation - Gravitational Music Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: radial-gradient(ellipse at center, #0a0a1f 0%, #000000 100%);
+            color: #e0e0ff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #canvas {
+            flex: 1;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(10, 10, 20, 0.9);
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 11px;
+            backdrop-filter: blur(10px);
+            max-width: 280px;
+        }
+        
+        .geometry-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin-top: 8px;
+        }
+        
+        .geometry-btn {
+            font-size: 10px;
+            padding: 5px 8px;
+        }
+        
+        .geometry-btn.active {
+            background: rgba(255, 150, 100, 0.3);
+            border-color: rgba(255, 150, 100, 0.7);
+        }
+        
+        .control-group {
+            margin-bottom: 12px;
+        }
+        
+        .control-label {
+            color: #8090ff;
+            margin-bottom: 4px;
+            display: block;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        button {
+            background: rgba(100, 150, 255, 0.1);
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            color: #e0e0ff;
+            padding: 6px 12px;
+            margin: 2px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: rgba(100, 150, 255, 0.2);
+            border-color: rgba(100, 150, 255, 0.5);
+        }
+        
+        button.active {
+            background: rgba(100, 150, 255, 0.3);
+            border-color: rgba(100, 150, 255, 0.7);
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        select {
+            background: rgba(10, 10, 20, 0.9);
+            color: #e0e0ff;
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            width: 100%;
+        }
+        
+        .info-display {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(10, 10, 20, 0.9);
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 11px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .info-row {
+            margin: 3px 0;
+            opacity: 0.8;
+        }
+        
+        .info-value {
+            color: #a0b0ff;
+            float: right;
+        }
+        
+        .mode-display {
+            color: #ffaa80;
+            font-weight: bold;
+        }
+        
+        .midi-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 8px 12px;
+            background: rgba(255, 100, 150, 0.1);
+            border: 1px solid rgba(255, 100, 150, 0.3);
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        
+        .midi-status.active {
+            background: rgba(100, 255, 150, 0.1);
+            border-color: rgba(100, 255, 150, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="controls">
+        <div class="control-group">
+            <div class="control-label">∴ Tonal Center</div>
+            <select id="rootNote">
+                <option value="261.63">C</option>
+                <option value="277.18">C#</option>
+                <option value="293.66">D</option>
+                <option value="311.13">D#</option>
+                <option value="329.63">E</option>
+                <option value="349.23">F</option>
+                <option value="369.99">F#</option>
+                <option value="392.00">G</option>
+                <option value="415.30">G#</option>
+                <option value="440.00">A</option>
+                <option value="466.16">A#</option>
+                <option value="493.88">B</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <div class="control-label">∮ Harmonic Field</div>
+            <select id="scaleMode">
+                <option value="ionian">Ionian (Major)</option>
+                <option value="dorian">Dorian</option>
+                <option value="phrygian">Phrygian</option>
+                <option value="lydian">Lydian</option>
+                <option value="mixolydian">Mixolydian</option>
+                <option value="aeolian">Aeolian (Minor)</option>
+                <option value="locrian">Locrian</option>
+                <option value="harmonic">Harmonic Minor</option>
+                <option value="pentatonic">Pentatonic</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <div class="control-label">⟨ Gravity Strength ⟩</div>
+            <input type="range" id="gravity" min="0.001" max="0.1" step="0.001" value="0.02">
+            <span id="gravityValue">0.02</span>
+        </div>
+        
+        <div class="control-group">
+            <div class="control-label">◈ Harmonic Tension</div>
+            <input type="range" id="tension" min="0" max="1" step="0.01" value="0.5">
+            <span id="tensionValue">0.5</span>
+        </div>
+        
+        <div class="control-group">
+            <button id="audioBtn">▶ Enable Audio</button>
+            <button id="clearBtn">◉ Clear Field</button>
+            <button id="pauseBtn">▮▮ Pause</button>
+        </div>
+        
+        <div class="control-group">
+            <div class="control-label">◈ Sacred Geometry</div>
+            <div class="geometry-buttons">
+                <button class="geometry-btn" data-shape="spiral">Golden Spiral</button>
+                <button class="geometry-btn" data-shape="fibonacci">Fibonacci</button>
+                <button class="geometry-btn" data-shape="rose">Rose Curve</button>
+                <button class="geometry-btn" data-shape="lissajous">Lissajous</button>
+                <button class="geometry-btn" data-shape="logarithmic">Logarithmic</button>
+                <button class="geometry-btn" data-shape="archimedes">Archimedes</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="info-display">
+        <div class="info-row">
+            <span>Orbital Bodies:</span>
+            <span class="info-value" id="bodyCount">0</span>
+        </div>
+        <div class="info-row">
+            <span>Active Harmonies:</span>
+            <span class="info-value" id="harmonyCount">0</span>
+        </div>
+        <div class="info-row">
+            <span>Field Energy:</span>
+            <span class="info-value" id="fieldEnergy">0</span>
+        </div>
+        <div class="info-row">
+            <span>Current Mode:</span>
+            <span class="info-value mode-display" id="currentMode">Ionian</span>
+        </div>
+    </div>
+    
+    <div class="midi-status" id="midiStatus">
+        MIDI: Disabled
+    </div>
+    
+    <script>
+        class HarmonicConstellation {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Physics
+                this.bodies = [];
+                this.center = { x: 0, y: 0, mass: 100 };
+                this.gravity = 0.02;
+                this.damping = 0.999;
+                this.isPaused = false;
+                
+                // Geometry generation
+                this.geometryAnimation = null;
+                this.geometryProgress = 0;
+                this.activeGeometry = null;
+                this.phi = (1 + Math.sqrt(5)) / 2; // Golden ratio</                
+                // Audio
+                this.audioContext = null;
+                this.audioEnabled = false;
+                this.masterGain = null;
+                this.activeNotes = new Map();
+                
+                // MIDI
+                this.midiOutput = null;
+                this.midiEnabled = false;
+                
+                // Musical parameters
+                this.rootFrequency = 261.63; // C4
+                this.currentScale = 'ionian';
+                this.harmonicTension = 0.5;
+                
+                // Scales (intervals in semitones)
+                this.scales = {
+                    ionian: [0, 2, 4, 5, 7, 9, 11, 12],
+                    dorian: [0, 2, 3, 5, 7, 9, 10, 12],
+                    phrygian: [0, 1, 3, 5, 7, 8, 10, 12],
+                    lydian: [0, 2, 4, 6, 7, 9, 11, 12],
+                    mixolydian: [0, 2, 4, 5, 7, 9, 10, 12],
+                    aeolian: [0, 2, 3, 5, 7, 8, 10, 12],
+                    locrian: [0, 1, 3, 5, 6, 8, 10, 12],
+                    harmonic: [0, 2, 3, 5, 7, 8, 11, 12],
+                    pentatonic: [0, 2, 4, 7, 9, 12]
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupCanvas();
+                this.setupControls();
+                this.setupMIDI();
+                this.animate();
+            }
+            
+            setupCanvas() {
+                const resize = () => {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                    this.center.x = this.canvas.width / 2;
+                    this.center.y = this.canvas.height / 2;
+                };
+                
+                resize();
+                window.addEventListener('resize', resize);
+                
+                // Add bodies on click
+                this.canvas.addEventListener('click', (e) => {
+                    if (!this.audioEnabled) return;
+                    this.addBody(e.clientX, e.clientY);
+                });
+            }
+            
+            setupControls() {
+                // Audio button
+                document.getElementById('audioBtn').addEventListener('click', async () => {
+                    if (!this.audioEnabled) {
+                        await this.initAudio();
+                        document.getElementById('audioBtn').textContent = '◼ Disable Audio';
+                    } else {
+                        this.disableAudio();
+                        document.getElementById('audioBtn').textContent = '▶ Enable Audio';
+                    }
+                });
+                
+                // Clear button
+                document.getElementById('clearBtn').addEventListener('click', () => {
+                    this.bodies = [];
+                    this.updateDisplay();
+                });
+                
+                // Pause button
+                document.getElementById('pauseBtn').addEventListener('click', () => {
+                    this.isPaused = !this.isPaused;
+                    document.getElementById('pauseBtn').textContent = this.isPaused ? '▶ Resume' : '▮▮ Pause';
+                });
+                
+                // Root note selector
+                document.getElementById('rootNote').addEventListener('change', (e) => {
+                    this.rootFrequency = parseFloat(e.target.value);
+                });
+                
+                // Scale mode selector
+                document.getElementById('scaleMode').addEventListener('change', (e) => {
+                    this.currentScale = e.target.value;
+                    document.getElementById('currentMode').textContent = 
+                        e.target.options[e.target.selectedIndex].text;
+                });
+                
+                // Gravity slider
+                document.getElementById('gravity').addEventListener('input', (e) => {
+                    this.gravity = parseFloat(e.target.value);
+                    document.getElementById('gravityValue').textContent = this.gravity.toFixed(3);
+                });
+                
+                // Tension slider
+                document.getElementById('tension').addEventListener('input', (e) => {
+                    this.harmonicTension = parseFloat(e.target.value);
+                    document.getElementById('tensionValue').textContent = this.harmonicTension.toFixed(2);
+                });
+                
+                // MIDI toggle
+                document.getElementById('midiStatus').addEventListener('click', () => {
+                    this.toggleMIDI();
+                });
+                
+                // Geometry buttons
+                document.querySelectorAll('.geometry-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        // Clear active state from all buttons
+                        document.querySelectorAll('.geometry-btn').forEach(b => b.classList.remove('active'));
+                        
+                        // If clicking the same button, stop animation
+                        if (this.activeGeometry === btn.dataset.shape) {
+                            this.stopGeometry();
+                        } else {
+                            // Start new geometry
+                            btn.classList.add('active');
+                            this.startGeometry(btn.dataset.shape);
+                        }
+                    });
+                });
+            }
+            
+            startGeometry(shape) {
+                this.activeGeometry = shape;
+                this.geometryProgress = 0;
+                
+                if (this.geometryAnimation) {
+                    cancelAnimationFrame(this.geometryAnimation);
+                }
+                
+                const animate = () => {
+                    if (!this.activeGeometry || !this.audioEnabled) return;
+                    
+                    this.geometryProgress += 0.02;
+                    
+                    // Generate point on the curve
+                    const point = this.getGeometryPoint(shape, this.geometryProgress);
+                    
+                    if (point) {
+                        // Only spawn bodies at intervals
+                        if (Math.floor(this.geometryProgress * 10) % 2 === 0 && 
+                            Math.floor((this.geometryProgress - 0.02) * 10) % 2 !== 0) {
+                            this.addBodyAtPoint(point.x, point.y, point.velocity);
+                        }
+                    }
+                    
+                    // Continue or loop
+                    if (this.geometryProgress < point.maxProgress) {
+                        this.geometryAnimation = requestAnimationFrame(animate);
+                    } else {
+                        this.geometryProgress = 0;
+                        this.geometryAnimation = requestAnimationFrame(animate);
+                    }
+                };
+                
+                animate();
+            }
+            
+            stopGeometry() {
+                this.activeGeometry = null;
+                if (this.geometryAnimation) {
+                    cancelAnimationFrame(this.geometryAnimation);
+                    this.geometryAnimation = null;
+                }
+                document.querySelectorAll('.geometry-btn').forEach(b => b.classList.remove('active'));
+            }
+            
+            getGeometryPoint(shape, t) {
+                let x, y, vx = 0, vy = 0;
+                let maxProgress = Math.PI * 4; // Default max
+                
+                switch(shape) {
+                    case 'spiral':
+                        // Golden spiral
+                        const goldenAngle = t * Math.PI * 2;
+                        const goldenRadius = Math.pow(this.phi, t * 0.5) * 20;
+                        x = this.center.x + Math.cos(goldenAngle) * goldenRadius;
+                        y = this.center.y + Math.sin(goldenAngle) * goldenRadius;
+                        // Tangential velocity
+                        vx = -Math.sin(goldenAngle) * goldenRadius * 0.1;
+                        vy = Math.cos(goldenAngle) * goldenRadius * 0.1;
+                        maxProgress = Math.PI * 6;
+                        break;
+                        
+                    case 'fibonacci':
+                        // Fibonacci spiral with discrete points
+                        const n = Math.floor(t * 3);
+                        const fib = this.fibonacci(n);
+                        const fibAngle = n * 2.399963; // Golden angle in radians
+                        const fibRadius = Math.sqrt(fib) * 15;
+                        x = this.center.x + Math.cos(fibAngle) * fibRadius;
+                        y = this.center.y + Math.sin(fibAngle) * fibRadius;
+                        vx = -Math.sin(fibAngle) * fibRadius * 0.05;
+                        vy = Math.cos(fibAngle) * fibRadius * 0.05;
+                        maxProgress = 8;
+                        break;
+                        
+                    case 'rose':
+                        // Rose curve (r = a * cos(k * θ))
+                        const k = 5; // Number of petals
+                        const roseTheta = t * 2;
+                        const roseR = 150 * Math.cos(k * roseTheta);
+                        x = this.center.x + roseR * Math.cos(roseTheta);
+                        y = this.center.y + roseR * Math.sin(roseTheta);
+                        // Calculate velocity from derivative
+                        const dr = -150 * k * Math.sin(k * roseTheta);
+                        vx = dr * Math.cos(roseTheta) - roseR * Math.sin(roseTheta);
+                        vy = dr * Math.sin(roseTheta) + roseR * Math.cos(roseTheta);
+                        vx *= 0.02;
+                        vy *= 0.02;
+                        maxProgress = Math.PI * 2;
+                        break;
+                        
+                    case 'lissajous':
+                        // Lissajous curve
+                        const A = 200, B = 200;
+                        const a = 3, b = 4; // Frequency ratio
+                        const delta = Math.PI / 2;
+                        x = this.center.x + A * Math.sin(a * t + delta);
+                        y = this.center.y + B * Math.sin(b * t);
+                        vx = A * a * Math.cos(a * t + delta) * 0.1;
+                        vy = B * b * Math.cos(b * t) * 0.1;
+                        maxProgress = Math.PI * 2;
+                        break;
+                        
+                    case 'logarithmic':
+                        // Logarithmic spiral
+                        const logA = 10;
+                        const logB = 0.2;
+                        const logTheta = t * 2;
+                        const logR = logA * Math.exp(logB * logTheta);
+                        x = this.center.x + logR * Math.cos(logTheta);
+                        y = this.center.y + logR * Math.sin(logTheta);
+                        vx = logR * (logB * Math.cos(logTheta) - Math.sin(logTheta)) * 0.05;
+                        vy = logR * (logB * Math.sin(logTheta) + Math.cos(logTheta)) * 0.05;
+                        maxProgress = Math.PI * 4;
+                        break;
+                        
+                    case 'archimedes':
+                        // Archimedean spiral
+                        const archA = 10;
+                        const archTheta = t * 3;
+                        const archR = archA * archTheta;
+                        x = this.center.x + archR * Math.cos(archTheta);
+                        y = this.center.y + archR * Math.sin(archTheta);
+                        vx = archA * (Math.cos(archTheta) - archTheta * Math.sin(archTheta)) * 0.05;
+                        vy = archA * (Math.sin(archTheta) + archTheta * Math.cos(archTheta)) * 0.05;
+                        maxProgress = Math.PI * 6;
+                        break;
+                        
+                    default:
+                        return null;
+                }
+                
+                return { x, y, velocity: { vx, vy }, maxProgress };
+            }
+            
+            fibonacci(n) {
+                if (n <= 1) return n;
+                let a = 0, b = 1;
+                for (let i = 2; i <= n; i++) {
+                    [a, b] = [b, a + b];
+                }
+                return b;
+            }
+            
+            addBodyAtPoint(x, y, velocity = {}) {
+                const dx = x - this.center.x;
+                const dy = y - this.center.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Use provided velocity or calculate orbital velocity
+                let vx, vy;
+                if (velocity && velocity.vx !== undefined) {
+                    vx = velocity.vx;
+                    vy = velocity.vy;
+                } else {
+                    const orbitalSpeed = Math.sqrt(this.gravity * this.center.mass / distance);
+                    const angle = Math.atan2(dy, dx);
+                    vx = -Math.sin(angle) * orbitalSpeed * 10;
+                    vy = Math.cos(angle) * orbitalSpeed * 10;
+                }
+                
+                // Map position to scale degree
+                const angle = Math.atan2(dy, dx);
+                const scaleNotes = this.scales[this.currentScale];
+                const scaleDegree = Math.floor((angle + Math.PI) / (2 * Math.PI) * scaleNotes.length);
+                const semitones = scaleNotes[scaleDegree % scaleNotes.length];
+                
+                // Calculate frequency
+                const frequency = this.rootFrequency * Math.pow(2, semitones / 12);
+                
+                // Map distance to octave
+                const octaveShift = Math.floor(distance / 100) - 2;
+                const finalFrequency = frequency * Math.pow(2, octaveShift);
+                
+                const body = {
+                    x, y, vx, vy,
+                    mass: 5 + Math.random() * 10,
+                    frequency: finalFrequency,
+                    scaleDegree,
+                    hue: (scaleDegree / scaleNotes.length) * 360,
+                    trail: [],
+                    lastTrigger: 0,
+                    triggerInterval: 1000 + Math.random() * 2000,
+                    amplitude: 0,
+                    fromGeometry: this.activeGeometry // Track source
+                };
+                
+                this.bodies.push(body);
+                this.updateDisplay();
+                
+                // Play initial note
+                this.triggerNote(body);
+            }
+            
+            async initAudio() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    this.masterGain = this.audioContext.createGain();
+                    this.masterGain.gain.value = 0.1;
+                    this.masterGain.connect(this.audioContext.destination);
+                    
+                    // Add reverb
+                    const convolver = this.audioContext.createConvolver();
+                    const length = this.audioContext.sampleRate * 2;
+                    const impulse = this.audioContext.createBuffer(2, length, this.audioContext.sampleRate);
+                    
+                    for (let channel = 0; channel < 2; channel++) {
+                        const channelData = impulse.getChannelData(channel);
+                        for (let i = 0; i < length; i++) {
+                            channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2) * 0.3;
+                        }
+                    }
+                    
+                    convolver.buffer = impulse;
+                    this.masterGain.connect(convolver);
+                    convolver.connect(this.audioContext.destination);
+                    
+                    this.audioEnabled = true;
+                    console.log('Audio initialized');
+                } catch (error) {
+                    console.error('Audio initialization failed:', error);
+                }
+            }
+            
+            disableAudio() {
+                if (this.audioContext) {
+                    this.audioContext.close();
+                    this.audioContext = null;
+                }
+                this.audioEnabled = false;
+            }
+            
+            async setupMIDI() {
+                try {
+                    if (navigator.requestMIDIAccess) {
+                        const midiAccess = await navigator.requestMIDIAccess();
+                        const outputs = Array.from(midiAccess.outputs.values());
+                        
+                        if (outputs.length > 0) {
+                            this.midiOutput = outputs[0];
+                            console.log('MIDI output available:', this.midiOutput.name);
+                        }
+                    }
+                } catch (error) {
+                    console.log('MIDI not available:', error);
+                }
+            }
+            
+            toggleMIDI() {
+                if (!this.midiOutput) return;
+                
+                this.midiEnabled = !this.midiEnabled;
+                const status = document.getElementById('midiStatus');
+                
+                if (this.midiEnabled) {
+                    status.textContent = `MIDI: ${this.midiOutput.name}`;
+                    status.classList.add('active');
+                } else {
+                    status.textContent = 'MIDI: Disabled';
+                    status.classList.remove('active');
+                    // Send all notes off
+                    for (let i = 0; i < 128; i++) {
+                        this.midiOutput.send([0x80, i, 0]);
+                    }
+                }
+            }
+            
+            addBody(x, y) {
+                this.addBodyAtPoint(x, y);
+            }
+            
+            triggerNote(body) {
+                const now = Date.now();
+                body.lastTrigger = now;
+                body.amplitude = 1;
+                
+                if (this.midiEnabled && this.midiOutput) {
+                    // Convert frequency to MIDI note
+                    const midiNote = Math.round(69 + 12 * Math.log2(body.frequency / 440));
+                    const velocity = Math.floor(64 + body.mass * 3);
+                    
+                    this.midiOutput.send([0x90, midiNote, velocity]);
+                    setTimeout(() => {
+                        this.midiOutput.send([0x80, midiNote, 64]);
+                    }, 200);
+                } else if (this.audioEnabled) {
+                    this.playTone(body.frequency, 0.1 + body.mass * 0.01, 500);
+                }
+            }
+            
+            playTone(frequency, volume, duration) {
+                if (!this.audioEnabled) return;
+                
+                const now = this.audioContext.currentTime;
+                
+                const osc = this.audioContext.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.value = frequency;
+                
+                const gain = this.audioContext.createGain();
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(volume, now + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + duration / 1000);
+                
+                // Add subtle FM modulation for richness
+                const modulator = this.audioContext.createOscillator();
+                modulator.frequency.value = frequency * (1 + this.harmonicTension);
+                const modGain = this.audioContext.createGain();
+                modGain.gain.value = frequency * 0.1 * this.harmonicTension;
+                
+                modulator.connect(modGain);
+                modGain.connect(osc.frequency);
+                
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                
+                osc.start(now);
+                modulator.start(now);
+                osc.stop(now + duration / 1000);
+                modulator.stop(now + duration / 1000);
+            }
+            
+            update() {
+                if (this.isPaused) return;
+                
+                const now = Date.now();
+                
+                // Update each body
+                this.bodies.forEach((body, i) => {
+                    // Gravitational force to center
+                    const dx = this.center.x - body.x;
+                    const dy = this.center.y - body.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > 0) {
+                        const force = (this.gravity * this.center.mass * body.mass) / (distance * distance);
+                        const ax = (dx / distance) * force / body.mass;
+                        const ay = (dy / distance) * force / body.mass;
+                        
+                        body.vx += ax;
+                        body.vy += ay;
+                    }
+                    
+                    // Inter-body forces (creates harmonic relationships)
+                    this.bodies.forEach((other, j) => {
+                        if (i === j) return;
+                        
+                        const dx2 = other.x - body.x;
+                        const dy2 = other.y - body.y;
+                        const dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+                        
+                        if (dist2 > 0 && dist2 < 100) {
+                            // Repulsive force at close range
+                            const repulsion = 50 / (dist2 * dist2);
+                            body.vx -= (dx2 / dist2) * repulsion;
+                            body.vy -= (dy2 / dist2) * repulsion;
+                            
+                            // Trigger harmonic interaction
+                            if (dist2 < 50 && now - body.lastTrigger > 500) {
+                                this.triggerNote(body);
+                            }
+                        }
+                    });
+                    
+                    // Apply velocity with damping
+                    body.vx *= this.damping;
+                    body.vy *= this.damping;
+                    body.x += body.vx;
+                    body.y += body.vy;
+                    
+                    // Update trail
+                    body.trail.push({ x: body.x, y: body.y });
+                    if (body.trail.length > 50) {
+                        body.trail.shift();
+                    }
+                    
+                    // Periodic triggering based on orbital position
+                    if (now - body.lastTrigger > body.triggerInterval) {
+                        const angle = Math.atan2(body.y - this.center.y, body.x - this.center.x);
+                        const targetAngle = (body.scaleDegree / this.scales[this.currentScale].length) * Math.PI * 2 - Math.PI;
+                        
+                        if (Math.abs(angle - targetAngle) < 0.2) {
+                            this.triggerNote(body);
+                        }
+                    }
+                    
+                    // Fade amplitude
+                    body.amplitude *= 0.98;
+                });
+                
+                // Remove bodies that have escaped
+                this.bodies = this.bodies.filter(body => {
+                    const dist = Math.sqrt(
+                        (body.x - this.center.x) ** 2 + 
+                        (body.y - this.center.y) ** 2
+                    );
+                    return dist < Math.max(this.canvas.width, this.canvas.height);
+                });
+            }
+            
+            draw() {
+                // Fade effect
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw tonal center
+                this.ctx.save();
+                this.ctx.shadowColor = 'rgba(150, 180, 255, 0.5)';
+                this.ctx.shadowBlur = 20;
+                
+                const gradient = this.ctx.createRadialGradient(
+                    this.center.x, this.center.y, 0,
+                    this.center.x, this.center.y, 30
+                );
+                gradient.addColorStop(0, 'rgba(200, 220, 255, 0.8)');
+                gradient.addColorStop(1, 'rgba(100, 150, 255, 0.2)');
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.beginPath();
+                this.ctx.arc(this.center.x, this.center.y, 30, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.restore();
+                
+                // Draw orbital guides (scale degrees)
+                this.ctx.save();
+                this.ctx.strokeStyle = 'rgba(100, 150, 255, 0.1)';
+                this.ctx.lineWidth = 1;
+                
+                const scaleNotes = this.scales[this.currentScale];
+                for (let i = 0; i < scaleNotes.length; i++) {
+                    const angle = (i / scaleNotes.length) * Math.PI * 2 - Math.PI / 2;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.center.x, this.center.y);
+                    this.ctx.lineTo(
+                        this.center.x + Math.cos(angle) * 300,
+                        this.center.y + Math.sin(angle) * 300
+                    );
+                    this.ctx.stroke();
+                }
+                this.ctx.restore();
+                
+                // Draw active geometry path
+                if (this.activeGeometry) {
+                    this.ctx.save();
+                    this.ctx.strokeStyle = 'rgba(255, 150, 100, 0.3)';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.setLineDash([5, 5]);
+                    
+                    this.ctx.beginPath();
+                    let firstPoint = true;
+                    
+                    // Draw the path preview
+                    for (let t = 0; t < this.geometryProgress; t += 0.05) {
+                        const point = this.getGeometryPoint(this.activeGeometry, t);
+                        if (point) {
+                            if (firstPoint) {
+                                this.ctx.moveTo(point.x, point.y);
+                                firstPoint = false;
+                            } else {
+                                this.ctx.lineTo(point.x, point.y);
+                            }
+                        }
+                    }
+                    
+                    this.ctx.stroke();
+                    this.ctx.setLineDash([]);
+                    
+                    // Draw current position on geometry
+                    const currentPoint = this.getGeometryPoint(this.activeGeometry, this.geometryProgress);
+                    if (currentPoint) {
+                        this.ctx.fillStyle = 'rgba(255, 200, 150, 0.8)';
+                        this.ctx.shadowColor = 'rgba(255, 200, 150, 0.8)';
+                        this.ctx.shadowBlur = 15;
+                        this.ctx.beginPath();
+                        this.ctx.arc(currentPoint.x, currentPoint.y, 8, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                    
+                    this.ctx.restore();
+                }
+                
+                // Draw bodies
+                this.bodies.forEach(body => {
+                    // Draw trail
+                    if (body.trail.length > 1) {
+                        this.ctx.strokeStyle = `hsla(${body.hue}, 70%, 50%, 0.3)`;
+                        this.ctx.lineWidth = 1;
+                        this.ctx.beginPath();
+                        body.trail.forEach((point, i) => {
+                            if (i === 0) {
+                                this.ctx.moveTo(point.x, point.y);
+                            } else {
+                                this.ctx.lineTo(point.x, point.y);
+                            }
+                        });
+                        this.ctx.stroke();
+                    }
+                    
+                    // Draw body
+                    this.ctx.save();
+                    
+                    if (body.amplitude > 0.1) {
+                        this.ctx.shadowColor = `hsla(${body.hue}, 70%, 60%, ${body.amplitude})`;
+                        this.ctx.shadowBlur = 20 * body.amplitude;
+                    }
+                    
+                    this.ctx.fillStyle = `hsla(${body.hue}, 70%, 50%, 0.8)`;
+                    this.ctx.beginPath();
+                    this.ctx.arc(body.x, body.y, body.mass, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    this.ctx.restore();
+                });
+                
+                // Draw connections between nearby bodies
+                this.ctx.strokeStyle = 'rgba(100, 150, 255, 0.2)';
+                this.ctx.lineWidth = 1;
+                
+                for (let i = 0; i < this.bodies.length; i++) {
+                    for (let j = i + 1; j < this.bodies.length; j++) {
+                        const dx = this.bodies[i].x - this.bodies[j].x;
+                        const dy = this.bodies[i].y - this.bodies[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist < 100) {
+                            this.ctx.globalAlpha = (100 - dist) / 100 * 0.5;
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(this.bodies[i].x, this.bodies[i].y);
+                            this.ctx.lineTo(this.bodies[j].x, this.bodies[j].y);
+                            this.ctx.stroke();
+                            this.ctx.globalAlpha = 1;
+                        }
+                    }
+                }
+            }
+            
+            updateDisplay() {
+                document.getElementById('bodyCount').textContent = this.bodies.length;
+                
+                // Count active harmonies (bodies within interaction range)
+                let harmonies = 0;
+                for (let i = 0; i < this.bodies.length; i++) {
+                    for (let j = i + 1; j < this.bodies.length; j++) {
+                        const dx = this.bodies[i].x - this.bodies[j].x;
+                        const dy = this.bodies[i].y - this.bodies[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 100) harmonies++;
+                    }
+                }
+                document.getElementById('harmonyCount').textContent = harmonies;
+                
+                // Calculate total kinetic energy
+                const energy = this.bodies.reduce((sum, body) => {
+                    return sum + 0.5 * body.mass * (body.vx * body.vx + body.vy * body.vy);
+                }, 0);
+                document.getElementById('fieldEnergy').textContent = Math.round(energy);
+            }
+            
+            animate() {
+                this.update();
+                this.draw();
+                this.updateDisplay();
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        // Initialize
+        const constellation = new HarmonicConstellation();
+        
+        console.log('∮ Harmonic Constellation initialized');
+        console.log('Click to create orbital bodies that generate music through gravitational interactions');
+    </script>
+</body>
+</html>

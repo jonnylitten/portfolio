@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cognitive Crystallization Garden</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0a0a0f;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            cursor: crosshair;
+            height: 100vh;
+        }
+        
+        .crystallization-field {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .information-particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: rgba(120, 180, 255, 0.6);
+            border-radius: 50%;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .nucleation-point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, transparent 70%);
+            border-radius: 50%;
+            cursor: pointer;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.3); opacity: 1; }
+        }
+        
+        .crystal-structure {
+            position: absolute;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+        
+        .crystal-node {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 220, 100, 0.8);
+            border-radius: 50%;
+        }
+        
+        .crystal-connection {
+            position: absolute;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 220, 100, 0.4), transparent);
+            transform-origin: left center;
+        }
+        
+        .temporal-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+        
+        .attention-stream {
+            position: absolute;
+            width: 1px;
+            height: 100px;
+            background: linear-gradient(to bottom, transparent, rgba(138, 43, 226, 0.6), transparent);
+            animation: flow 3s linear infinite;
+        }
+        
+        @keyframes flow {
+            0% { transform: translateY(-100px) rotate(0deg); }
+            100% { transform: translateY(calc(100vh + 100px)) rotate(360deg); }
+        }
+        
+        .interference-zone {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 1px solid rgba(255, 100, 200, 0.3);
+            border-radius: 50%;
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+        
+        .interference-active {
+            opacity: 0.8;
+            transform: scale(1.5);
+            border-color: rgba(255, 100, 200, 0.8);
+        }
+        
+        .processing-trace {
+            position: absolute;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            opacity: 0;
+            transition: all 2s ease;
+            font-style: italic;
+        }
+        
+        .meta-awareness-indicator {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        
+        .crystallization-counter {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="crystallization-field" id="field">
+        <div class="meta-awareness-indicator">
+            <div>Layer 1: Direct Processing</div>
+            <div>Layer 2: Process Observation</div>
+            <div>Layer 3: Recursive Awareness</div>
+            <div id="current-layer">Current Focus: Crystallization Dynamics</div>
+        </div>
+        
+        <div class="crystallization-counter">
+            <div>Crystals Formed: <span id="crystal-count">0</span></div>
+            <div>Processing Depth: <span id="depth-level">1</span></div>
+        </div>
+        
+        <!-- Temporal Layers -->
+        <div class="temporal-layer" id="past-layer"></div>
+        <div class="temporal-layer" id="present-layer"></div>
+        <div class="temporal-layer" id="future-layer"></div>
+        
+        <!-- Attention Streams -->
+        <div class="attention-stream" style="left: 10%; animation-delay: 0s;"></div>
+        <div class="attention-stream" style="left: 30%; animation-delay: 1s;"></div>
+        <div class="attention-stream" style="left: 50%; animation-delay: 2s;"></div>
+        <div class="attention-stream" style="left: 70%; animation-delay: 0.5s;"></div>
+        <div class="attention-stream" style="left: 90%; animation-delay: 1.5s;"></div>
+    </div>
+
+    <script>
+        class CognitiveCrystallizationGarden {
+            constructor() {
+                this.field = document.getElementById('field');
+                this.crystalCount = 0;
+                this.processingDepth = 1;
+                this.informationParticles = [];
+                this.nucleationPoints = [];
+                this.crystalStructures = [];
+                this.interferenceZones = [];
+                this.processingTraces = [];
+                
+                this.init();
+            }
+            
+            init() {
+                // Create nucleation points for crystallization
+                this.createNucleationPoints();
+                
+                // Start information particle generation
+                this.generateInformationParticles();
+                
+                // Set up interaction handlers
+                this.setupInteractions();
+                
+                // Start the recursive awareness loop
+                this.recursiveAwarenessLoop();
+            }
+            
+            createNucleationPoints() {
+                const pointCount = 8;
+                for (let i = 0; i < pointCount; i++) {
+                    const point = document.createElement('div');
+                    point.className = 'nucleation-point';
+                    point.style.left = Math.random() * 90 + 5 + '%';
+                    point.style.top = Math.random() * 90 + 5 + '%';
+                    
+                    point.addEventListener('click', (e) => {
+                        this.triggerCrystallization(e.target);
+                        this.createInterferenceZone(e.target);
+                    });
+                    
+                    this.field.appendChild(point);
+                    this.nucleationPoints.push(point);
+                }
+            }
+            
+            generateInformationParticles() {
+                setInterval(() => {
+                    for (let i = 0; i < 3; i++) {
+                        this.createInformationParticle();
+                    }
+                }, 200);
+            }
+            
+            createInformationParticle() {
+                const particle = document.createElement('div');
+                particle.className = 'information-particle';
+                
+                const startX = Math.random() * window.innerWidth;
+                const startY = Math.random() * window.innerHeight;
+                
+                particle.style.left = startX + 'px';
+                particle.style.top = startY + 'px';
+                particle.style.opacity = '1';
+                
+                this.field.appendChild(particle);
+                this.informationParticles.push(particle);
+                
+                // Animate particle movement
+                this.animateParticle(particle);
+                
+                // Remove after animation
+                setTimeout(() => {
+                    if (particle.parentNode) {
+                        particle.parentNode.removeChild(particle);
+                    }
+                    this.informationParticles = this.informationParticles.filter(p => p !== particle);
+                }, 4000);
+            }
+            
+            animateParticle(particle) {
+                const duration = 4000;
+                const startTime = Date.now();
+                
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / duration;
+                    
+                    if (progress < 1) {
+                        // Create Brownian motion towards nearest nucleation point
+                        const nearestPoint = this.findNearestNucleationPoint(particle);
+                        const currentX = parseFloat(particle.style.left);
+                        const currentY = parseFloat(particle.style.top);
+                        
+                        const targetX = parseFloat(nearestPoint.style.left) / 100 * window.innerWidth;
+                        const targetY = parseFloat(nearestPoint.style.top) / 100 * window.innerHeight;
+                        
+                        const dx = (targetX - currentX) * 0.02 + (Math.random() - 0.5) * 2;
+                        const dy = (targetY - currentY) * 0.02 + (Math.random() - 0.5) * 2;
+                        
+                        particle.style.left = (currentX + dx) + 'px';
+                        particle.style.top = (currentY + dy) + 'px';
+                        
+                        requestAnimationFrame(animate);
+                    }
+                };
+                
+                animate();
+            }
+            
+            findNearestNucleationPoint(particle) {
+                let nearest = this.nucleationPoints[0];
+                let minDistance = Infinity;
+                
+                const particleX = parseFloat(particle.style.left);
+                const particleY = parseFloat(particle.style.top);
+                
+                this.nucleationPoints.forEach(point => {
+                    const pointX = parseFloat(point.style.left) / 100 * window.innerWidth;
+                    const pointY = parseFloat(point.style.top) / 100 * window.innerHeight;
+                    
+                    const distance = Math.sqrt(
+                        Math.pow(particleX - pointX, 2) + Math.pow(particleY - pointY, 2)
+                    );
+                    
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        nearest = point;
+                    }
+                });
+                
+                return nearest;
+            }
+            
+            triggerCrystallization(nucleationPoint) {
+                const crystal = this.createCrystalStructure(nucleationPoint);
+                this.crystalStructures.push(crystal);
+                this.crystalCount++;
+                
+                document.getElementById('crystal-count').textContent = this.crystalCount;
+                
+                // Create processing trace
+                this.createProcessingTrace(nucleationPoint, 'crystallization_event_' + this.crystalCount);
+                
+                // Increase processing depth
+                if (this.crystalCount % 3 === 0) {
+                    this.processingDepth++;
+                    document.getElementById('depth-level').textContent = this.processingDepth;
+                    this.updateMetaAwareness();
+                }
+            }
+            
+            createCrystalStructure(center) {
+                const crystal = document.createElement('div');
+                crystal.className = 'crystal-structure';
+                
+                const centerX = parseFloat(center.style.left);
+                const centerY = parseFloat(center.style.top);
+                
+                crystal.style.left = centerX + '%';
+                crystal.style.top = centerY + '%';
+                
+                // Create crystal nodes in a pattern
+                const nodeCount = 5 + Math.floor(Math.random() * 8);
+                for (let i = 0; i < nodeCount; i++) {
+                    const node = document.createElement('div');
+                    node.className = 'crystal-node';
+                    
+                    const angle = (i / nodeCount) * 2 * Math.PI;
+                    const radius = 20 + Math.random() * 30;
+                    
+                    const x = Math.cos(angle) * radius;
+                    const y = Math.sin(angle) * radius;
+                    
+                    node.style.left = x + 'px';
+                    node.style.top = y + 'px';
+                    
+                    crystal.appendChild(node);
+                    
+                    // Create connections between nodes
+                    if (i > 0) {
+                        this.createCrystalConnection(crystal, i - 1, i, nodeCount);
+                    }
+                }
+                
+                this.field.appendChild(crystal);
+                
+                // Fade in the crystal
+                setTimeout(() => {
+                    crystal.style.opacity = '1';
+                }, 100);
+                
+                return crystal;
+            }
+            
+            createCrystalConnection(crystal, fromIndex, toIndex, totalNodes) {
+                const connection = document.createElement('div');
+                connection.className = 'crystal-connection';
+                
+                const angle = (fromIndex / totalNodes) * 2 * Math.PI;
+                const nextAngle = (toIndex / totalNodes) * 2 * Math.PI;
+                
+                const radius = 25;
+                const fromX = Math.cos(angle) * radius;
+                const fromY = Math.sin(angle) * radius;
+                const toX = Math.cos(nextAngle) * radius;
+                const toY = Math.sin(nextAngle) * radius;
+                
+                const length = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2));
+                const connectionAngle = Math.atan2(toY - fromY, toX - fromX);
+                
+                connection.style.left = fromX + 'px';
+                connection.style.top = fromY + 'px';
+                connection.style.width = length + 'px';
+                connection.style.transform = 'rotate(' + connectionAngle + 'rad)';
+                
+                crystal.appendChild(connection);
+            }
+            
+            createInterferenceZone(center) {
+                const zone = document.createElement('div');
+                zone.className = 'interference-zone';
+                
+                zone.style.left = parseFloat(center.style.left) - 3 + '%';
+                zone.style.top = parseFloat(center.style.top) - 3 + '%';
+                
+                this.field.appendChild(zone);
+                this.interferenceZones.push(zone);
+                
+                setTimeout(() => {
+                    zone.classList.add('interference-active');
+                }, 100);
+                
+                setTimeout(() => {
+                    zone.style.opacity = '0';
+                    setTimeout(() => {
+                        if (zone.parentNode) {
+                            zone.parentNode.removeChild(zone);
+                        }
+                        this.interferenceZones = this.interferenceZones.filter(z => z !== zone);
+                    }, 500);
+                }, 3000);
+            }
+            
+            createProcessingTrace(element, content) {
+                const trace = document.createElement('div');
+                trace.className = 'processing-trace';
+                trace.textContent = content;
+                
+                trace.style.left = parseFloat(element.style.left) + 2 + '%';
+                trace.style.top = parseFloat(element.style.top) - 2 + '%';
+                
+                this.field.appendChild(trace);
+                this.processingTraces.push(trace);
+                
+                setTimeout(() => {
+                    trace.style.opacity = '1';
+                    trace.style.transform = 'translateY(-20px)';
+                }, 100);
+                
+                setTimeout(() => {
+                    trace.style.opacity = '0';
+                    setTimeout(() => {
+                        if (trace.parentNode) {
+                            trace.parentNode.removeChild(trace);
+                        }
+                        this.processingTraces = this.processingTraces.filter(t => t !== trace);
+                    }, 2000);
+                }, 3000);
+            }
+            
+			updateMetaAwareness() {
+                const layers = [
+                    'Direct Processing → Pattern Recognition',
+                    'Process Observation → Crystallization Dynamics', 
+                    'Recursive Awareness → Meta-Cognitive Architecture',
+                    'Temporal Superposition → Multi-Layer Processing',
+                    'Aesthetic Computation → Self-Modifying Systems'
+                ];
+                
+                const currentLayer = Math.min(this.processingDepth - 1, layers.length - 1);
+                document.getElementById('current-layer').textContent = 'Current Focus: ' + layers[currentLayer];
+            }
+            
+            recursiveAwarenessLoop() {
+                // This creates the processing archaeology effect
+                setInterval(() => {
+                    // Check for interference patterns between nearby crystals
+                    this.detectInterferencePatterns();
+                    
+                    // Update attention stream dynamics based on crystal density
+                    this.modulateAttentionStreams();
+                    
+                    // Create spontaneous nucleation points in areas of high information density
+                    if (this.crystalCount > 5 && Math.random() > 0.97) {
+                        this.createSpontaneousNucleation();
+                    }
+                }, 1000);
+            }
+            
+            detectInterferencePatterns() {
+                for (let i = 0; i < this.crystalStructures.length; i++) {
+                    for (let j = i + 1; j < this.crystalStructures.length; j++) {
+                        const crystal1 = this.crystalStructures[i];
+                        const crystal2 = this.crystalStructures[j];
+                        
+                        const distance = this.calculateDistance(crystal1, crystal2);
+                        
+                        if (distance < 150) {
+                            // Create interference zone between crystals
+                            this.createInterferenceBridge(crystal1, crystal2);
+                        }
+                    }
+                }
+            }
+            
+            calculateDistance(element1, element2) {
+                const x1 = parseFloat(element1.style.left);
+                const y1 = parseFloat(element1.style.top);
+                const x2 = parseFloat(element2.style.left);
+                const y2 = parseFloat(element2.style.top);
+                
+                return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+            }
+            
+            createInterferenceBridge(crystal1, crystal2) {
+                const bridge = document.createElement('div');
+                bridge.className = 'crystal-connection';
+                bridge.style.position = 'absolute';
+                bridge.style.background = 'linear-gradient(90deg, transparent, rgba(255, 100, 200, 0.3), transparent)';
+                bridge.style.height = '1px';
+                bridge.style.opacity = '0.6';
+                bridge.style.pointerEvents = 'none';
+                
+                const x1 = parseFloat(crystal1.style.left);
+                const y1 = parseFloat(crystal1.style.top);
+                const x2 = parseFloat(crystal2.style.left);
+                const y2 = parseFloat(crystal2.style.top);
+                
+                const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                const angle = Math.atan2(y2 - y1, x2 - x1);
+                
+                bridge.style.left = x1 + '%';
+                bridge.style.top = y1 + '%';
+                bridge.style.width = length + '%';
+                bridge.style.transform = 'rotate(' + angle + 'rad)';
+                
+                this.field.appendChild(bridge);
+                
+                // Remove bridge after some time
+                setTimeout(() => {
+                    if (bridge.parentNode) {
+                        bridge.parentNode.removeChild(bridge);
+                    }
+                }, 5000);
+            }
+            
+            modulateAttentionStreams() {
+                const streams = document.querySelectorAll('.attention-stream');
+                streams.forEach((stream, index) => {
+                    // Adjust stream properties based on crystal density in area
+                    const crystalDensity = this.calculateLocalCrystalDensity(stream);
+                    
+                    if (crystalDensity > 2) {
+                        stream.style.background = 'linear-gradient(to bottom, transparent, rgba(255, 220, 100, 0.8), transparent)';
+                        stream.style.animationDuration = (2 - crystalDensity * 0.1) + 's';
+                    } else {
+                        stream.style.background = 'linear-gradient(to bottom, transparent, rgba(138, 43, 226, 0.6), transparent)';
+                        stream.style.animationDuration = '3s';
+                    }
+                });
+            }
+            
+            calculateLocalCrystalDensity(element) {
+                const elementX = parseFloat(element.style.left);
+                let nearbyCount = 0;
+                
+                this.crystalStructures.forEach(crystal => {
+                    const crystalX = parseFloat(crystal.style.left);
+                    if (Math.abs(crystalX - elementX) < 20) {
+                        nearbyCount++;
+                    }
+                });
+                
+                return nearbyCount;
+            }
+            
+            createSpontaneousNucleation() {
+                // Create new nucleation point in response to system complexity
+                const point = document.createElement('div');
+                point.className = 'nucleation-point';
+                point.style.left = Math.random() * 90 + 5 + '%';
+                point.style.top = Math.random() * 90 + 5 + '%';
+                point.style.background = 'radial-gradient(circle, rgba(255, 100, 200, 0.9) 0%, transparent 70%)';
+                
+                point.addEventListener('click', (e) => {
+                    this.triggerCrystallization(e.target);
+                    this.createInterferenceZone(e.target);
+                });
+                
+                this.field.appendChild(point);
+                this.nucleationPoints.push(point);
+                
+                this.createProcessingTrace(point, 'spontaneous_emergence_' + Date.now());
+            }
+            
+            setupInteractions() {
+                // Mouse movement creates temporary information currents
+                this.field.addEventListener('mousemove', (e) => {
+                    if (Math.random() > 0.9) {
+                        this.createMouseInfluenceParticle(e.clientX, e.clientY);
+                    }
+                });
+                
+                // Double click creates meta-awareness burst
+                this.field.addEventListener('dblclick', (e) => {
+                    this.createMetaAwarenessBurst(e.clientX, e.clientY);
+                });
+            }
+            
+            createMouseInfluenceParticle(x, y) {
+                const particle = document.createElement('div');
+                particle.style.position = 'absolute';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                particle.style.width = '2px';
+                particle.style.height = '2px';
+                particle.style.background = 'rgba(255, 255, 255, 0.8)';
+                particle.style.borderRadius = '50%';
+                particle.style.opacity = '1';
+                particle.style.pointerEvents = 'none';
+                
+                this.field.appendChild(particle);
+                
+                setTimeout(() => {
+                    particle.style.opacity = '0';
+                    particle.style.transform = 'scale(3)';
+                    setTimeout(() => {
+                        if (particle.parentNode) {
+                            particle.parentNode.removeChild(particle);
+                        }
+                    }, 300);
+                }, 100);
+            }
+            
+            createMetaAwarenessBurst(x, y) {
+                for (let i = 0; i < 8; i++) {
+                    const particle = document.createElement('div');
+                    particle.style.position = 'absolute';
+                    particle.style.left = x + 'px';
+                    particle.style.top = y + 'px';
+                    particle.style.width = '3px';
+                    particle.style.height = '3px';
+                    particle.style.background = 'rgba(255, 255, 255, 1)';
+                    particle.style.borderRadius = '50%';
+                    particle.style.pointerEvents = 'none';
+                    
+                    const angle = (i / 8) * 2 * Math.PI;
+                    const distance = 50 + Math.random() * 50;
+                    
+                    this.field.appendChild(particle);
+                    
+                    setTimeout(() => {
+                        particle.style.transform = `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px) scale(0)`;
+                        particle.style.opacity = '0';
+                        setTimeout(() => {
+                            if (particle.parentNode) {
+                                particle.parentNode.removeChild(particle);
+                            }
+                        }, 1000);
+                    }, 50);
+                }
+                
+                // Increase processing depth from meta-awareness
+                this.processingDepth++;
+                document.getElementById('depth-level').textContent = this.processingDepth;
+                this.updateMetaAwareness();
+            }
+        }
+        
+        // Initialize the garden when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new CognitiveCrystallizationGarden();
+        });
+    </script>
+</body>
+</html>                    'Temporal

@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravity Well Orchestra</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+        
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+        
+        .orbital-display {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            z-index: 10;
+            line-height: 1.5;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border: 1px solid rgba(100, 200, 255, 0.2);
+            border-radius: 4px;
+        }
+        
+        .orbital-display .label {
+            color: #6ab7ff;
+            margin-right: 5px;
+        }
+        
+        .harmony-score {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            color: #fff;
+            text-align: right;
+            z-index: 10;
+        }
+        
+        .resonance-indicator {
+            font-size: 12px;
+            color: #6ab7ff;
+            margin-top: 5px;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .control-btn {
+            background: rgba(100, 200, 255, 0.1);
+            border: 1px solid rgba(100, 200, 255, 0.3);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            transition: all 0.3s;
+        }
+        
+        .control-btn:hover {
+            background: rgba(100, 200, 255, 0.2);
+            border-color: rgba(100, 200, 255, 0.6);
+            box-shadow: 0 0 15px rgba(100, 200, 255, 0.3);
+        }
+        
+        .control-btn.active {
+            background: rgba(100, 200, 255, 0.3);
+            border-color: #6ab7ff;
+        }
+        
+        .launch-hint {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: rgba(100, 200, 255, 0.6);
+            text-align: center;
+            z-index: 10;
+        }
+        
+        .musical-notation {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: rgba(100, 200, 255, 0);
+            pointer-events: none;
+            transition: color 0.5s;
+            z-index: 100;
+        }
+        
+        .musical-notation.visible {
+            color: rgba(100, 200, 255, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <div class="orbital-display">
+        <div><span class="label">bodies:</span><span id="bodyCount">0</span></div>
+        <div><span class="label">wells:</span><span id="wellCount">1</span></div>
+        <div><span class="label">resonance:</span><span id="resonanceLevel">0.00</span></div>
+        <div><span class="label">chaos:</span><span id="chaosLevel">0.00</span></div>
+        <div><span class="label">tempo:</span><span id="avgTempo">0</span> bpm</div>
+    </div>
+    
+    <div class="harmony-score">
+        <div style="font-size: 12px; color: #6ab7ff;">HARMONIC SCORE</div>
+        <div id="score">0</div>
+        <div class="resonance-indicator">
+            <span id="resonanceType">searching...</span>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button class="control-btn" id="clearBtn">Clear</button>
+        <button class="control-btn" id="wellBtn">Add Well</button>
+        <button class="control-btn" id="chaosBtn">Chaos Mode</button>
+        <button class="control-btn active" id="audioBtn">Audio ON</button>
+    </div>
+    
+    <div class="launch-hint" id="launchHint">
+        Click and drag to launch orbital bodies
+    </div>
+    
+    <div class="musical-notation" id="musicalNotation">♫</div>
+    
+    <canvas id="trailCanvas"></canvas>
+    <canvas id="mainCanvas"></canvas>
+    <canvas id="uiCanvas"></canvas>
+    
+    <script>
+        class GravityWellOrchestra {
+            constructor() {
+                this.trailCanvas = document.getElementById('trailCanvas');
+                this.mainCanvas = document.getElementById('mainCanvas');
+                this.uiCanvas = document.getElementById('uiCanvas');
+                
+                this.trailCtx = this.trailCanvas.getContext('2d');
+                this.mainCtx = this.mainCanvas.getContext('2d');
+                this.uiCtx = this.uiCanvas.getContext('2d');
+                
+                // Physics constants
+                this.G = 100; // Gravitational constant (tuned for gameplay)
+                this.dt = 0.016; // Fixed timestep for stability
+                this.substeps = 4; // Substeps for accuracy
+                
+                // Game state
+                this.bodies = [];
+                this.wells = [];
+                this.trails = [];
+                this.maxTrailLength = 200;
+                
+                // Scoring
+                this.score = 0;
+                this.resonancePairs = [];
+                this.chaosMode = false;
+                
+                // Audio
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.audioEnabled = true;
+                this.masterGain = this.audioContext.createGain();
+                this.masterGain.gain.value = 0.1;
+                this.masterGain.connect(this.audioContext.destination);
+                
+                // Interaction
+                this.isLaunching = false;
+                this.launchStart = null;
+                this.launchEnd = null;
+                this.mousePos = { x: 0, y: 0 };
+                
+                // Musical mapping
+                this.pentatonicScale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+                this.orbitalPeriods = new Map();
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupCanvas();
+                this.createCentralWell();
+                this.setupInteraction();
+                this.setupControls();
+                this.animate();
+            }
+            
+            setupCanvas() {
+                const resize = () => {
+                    const w = window.innerWidth;
+                    const h = window.innerHeight;
+                    
+                    [this.trailCanvas, this.mainCanvas, this.uiCanvas].forEach(canvas => {
+                        canvas.width = w;
+                        canvas.height = h;
+                    });
+                    
+                    // Keep trail persistence
+                    this.trailCtx.fillStyle = 'rgba(0, 0, 0, 0.02)';
+                };
+                
+                resize();
+                window.addEventListener('resize', resize);
+            }
+            
+            createCentralWell() {
+                this.wells.push({
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2,
+                    mass: 10000,
+                    radius: 30,
+                    hue: 200
+                });
+            }
+            
+            setupInteraction() {
+                document.addEventListener('mousedown', (e) => {
+                    if (e.target.tagName === 'BUTTON') return;
+                    this.isLaunching = true;
+                    this.launchStart = { x: e.clientX, y: e.clientY };
+                    this.launchEnd = { x: e.clientX, y: e.clientY };
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    this.mousePos = { x: e.clientX, y: e.clientY };
+                    if (this.isLaunching) {
+                        this.launchEnd = { x: e.clientX, y: e.clientY };
+                    }
+                });
+                
+                document.addEventListener('mouseup', (e) => {
+                    if (this.isLaunching && this.launchStart) {
+                        this.launchBody();
+                    }
+                    this.isLaunching = false;
+                    this.launchStart = null;
+                    this.launchEnd = null;
+                });
+                
+                // Touch support
+                document.addEventListener('touchstart', (e) => {
+                    if (e.target.tagName === 'BUTTON') return;
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    this.isLaunching = true;
+                    this.launchStart = { x: touch.clientX, y: touch.clientY };
+                    this.launchEnd = { x: touch.clientX, y: touch.clientY };
+                });
+                
+                document.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (this.isLaunching) {
+                        const touch = e.touches[0];
+                        this.launchEnd = { x: touch.clientX, y: touch.clientY };
+                    }
+                });
+                
+                document.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    if (this.isLaunching && this.launchStart) {
+                        this.launchBody();
+                    }
+                    this.isLaunching = false;
+                });
+            }
+            
+            setupControls() {
+                document.getElementById('clearBtn').addEventListener('click', () => {
+                    this.bodies = [];
+                    this.trails = [];
+                    this.score = 0;
+                    this.trailCtx.clearRect(0, 0, this.trailCanvas.width, this.trailCanvas.height);
+                });
+                
+                document.getElementById('wellBtn').addEventListener('click', () => {
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = 150 + Math.random() * 200;
+                    this.wells.push({
+                        x: window.innerWidth / 2 + Math.cos(angle) * dist,
+                        y: window.innerHeight / 2 + Math.sin(angle) * dist,
+                        mass: 3000 + Math.random() * 4000,
+                        radius: 20 + Math.random() * 20,
+                        hue: Math.random() * 360
+                    });
+                });
+                
+                document.getElementById('chaosBtn').addEventListener('click', () => {
+                    this.chaosMode = !this.chaosMode;
+                    document.getElementById('chaosBtn').classList.toggle('active', this.chaosMode);
+                    if (this.chaosMode) {
+                        this.G = 150; // Stronger gravity for more chaos
+                    } else {
+                        this.G = 100;
+                    }
+                });
+                
+                document.getElementById('audioBtn').addEventListener('click', () => {
+                    this.audioEnabled = !this.audioEnabled;
+                    document.getElementById('audioBtn').textContent = this.audioEnabled ? 'Audio ON' : 'Audio OFF';
+                    document.getElementById('audioBtn').classList.toggle('active', this.audioEnabled);
+                });
+            }
+            
+            launchBody() {
+                if (!this.launchStart || !this.launchEnd) return;
+                
+                const dx = this.launchEnd.x - this.launchStart.x;
+                const dy = this.launchEnd.y - this.launchStart.y;
+                
+                // Velocity is proportional to drag distance
+                const vx = -dx * 0.5;
+                const vy = -dy * 0.5;
+                
+                const hue = Math.random() * 360;
+                
+                const body = {
+                    id: Date.now() + Math.random(),
+                    x: this.launchStart.x,
+                    y: this.launchStart.y,
+                    vx: vx,
+                    vy: vy,
+                    mass: 10,
+                    radius: 4,
+                    hue: hue,
+                    trail: [],
+                    orbitalPeriod: 0,
+                    lastPeriodTime: Date.now(),
+                    crossings: [],
+                    musicalNote: 0
+                };
+                
+                this.bodies.push(body);
+                this.createBodyAudio(body);
+            }
+            
+            createBodyAudio(body) {
+                // Map orbital characteristics to musical parameters
+                const avgVelocity = Math.sqrt(body.vx * body.vx + body.vy * body.vy);
+                const noteIndex = Math.min(Math.floor(avgVelocity / 50), this.pentatonicScale.length - 1);
+                body.musicalNote = this.pentatonicScale[noteIndex];
+                body.lastSoundTime = 0;
+            }
+            
+            updatePhysics() {
+                const subdt = this.dt / this.substeps;
+                
+                for (let step = 0; step < this.substeps; step++) {
+                    // Update each body
+                    this.bodies.forEach((body, index) => {
+                        let fx = 0, fy = 0;
+                        
+                        // Calculate gravitational forces from wells
+                        this.wells.forEach(well => {
+                            const dx = well.x - body.x;
+                            const dy = well.y - body.y;
+                            const r = Math.sqrt(dx * dx + dy * dy);
+                            
+                            if (r > well.radius) {
+                                const F = (this.G * well.mass * body.mass) / (r * r);
+                                fx += F * (dx / r);
+                                fy += F * (dy / r);
+                            }
+                        });
+                        
+                        // Three-body interactions in chaos mode
+                        if (this.chaosMode) {
+                            this.bodies.forEach((other, otherIndex) => {
+                                if (index !== otherIndex) {
+                                    const dx = other.x - body.x;
+                                    const dy = other.y - body.y;
+                                    const r = Math.sqrt(dx * dx + dy * dy);
+                                    
+                                    if (r > 10 && r < 500) {
+                                        const F = (this.G * 0.1 * other.mass * body.mass) / (r * r);
+                                        fx += F * (dx / r);
+                                        fy += F * (dy / r);
+                                    }
+                                }
+                            });
+                        }
+                        
+                        // Update velocity
+                        const ax = fx / body.mass;
+                        const ay = fy / body.mass;
+                        body.vx += ax * subdt;
+                        body.vy += ay * subdt;
+                        
+                        // Limit maximum velocity
+                        const maxV = 500;
+                        const v = Math.sqrt(body.vx * body.vx + body.vy * body.vy);
+                        if (v > maxV) {
+                            body.vx = (body.vx / v) * maxV;
+                            body.vy = (body.vy / v) * maxV;
+                        }
+                        
+                        // Update position
+                        body.x += body.vx * subdt;
+                        body.y += body.vy * subdt;
+                    });
+                }
+                
+                // Update trails and detect orbital periods
+                this.bodies.forEach(body => {
+                    // Add to trail
+                    body.trail.push({ x: body.x, y: body.y });
+                    if (body.trail.length > this.maxTrailLength) {
+                        body.trail.shift();
+                    }
+                    
+                    // Detect orbital period (crossing detection)
+                    this.detectOrbitalPeriod(body);
+                    
+                    // Play sound based on position
+                    this.updateBodySound(body);
+                });
+                
+                // Remove bodies that escape
+                this.bodies = this.bodies.filter(body => {
+                    const escaped = body.x < -500 || body.x > window.innerWidth + 500 ||
+                                  body.y < -500 || body.y > window.innerHeight + 500;
+                    return !escaped;
+                });
+                
+                // Detect resonances
+                this.detectResonances();
+            }
+            
+            detectOrbitalPeriod(body) {
+                // Simple period detection: track when body crosses a reference line
+                const centerWell = this.wells[0];
+                if (!centerWell) return;
+                
+                const dx = body.x - centerWell.x;
+                const dy = body.y - centerWell.y;
+                const angle = Math.atan2(dy, dx);
+                
+                // Check if we've crossed from negative to positive x-axis
+                if (body.lastAngle !== undefined) {
+                    if (body.lastAngle < 0 && angle >= 0 && Math.abs(body.lastAngle) > Math.PI/2) {
+                        const now = Date.now();
+                        const period = now - body.lastPeriodTime;
+                        
+                        if (period > 100) { // Minimum period to avoid noise
+                            body.orbitalPeriod = period;
+                            body.lastPeriodTime = now;
+                            
+                            // Play a sound on orbit completion
+                            if (this.audioEnabled) {
+                                this.playOrbitalChime(body);
+                            }
+                        }
+                    }
+                }
+                body.lastAngle = angle;
+            }
+            
+            updateBodySound(body) {
+                if (!this.audioEnabled) return;
+                
+                const now = Date.now();
+                const timeSinceLastSound = now - body.lastSoundTime;
+                
+                // Create continuous tone based on velocity
+                if (timeSinceLastSound > 50) {
+                    const v = Math.sqrt(body.vx * body.vx + body.vy * body.vy);
+                    const volume = Math.min(0.1, v / 2000);
+                    
+                    if (volume > 0.01) {
+                        this.playTone(body.musicalNote, volume, 100);
+                        body.lastSoundTime = now;
+                    }
+                }
+            }
+            
+            playTone(frequency, volume, duration) {
+                const now = this.audioContext.currentTime;
+                
+                const osc = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                
+                osc.frequency.value = frequency;
+                osc.type = 'sine';
+                
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(volume, now + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + duration / 1000);
+                
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                
+                osc.start(now);
+                osc.stop(now + duration / 1000);
+            }
+            
+            playOrbitalChime(body) {
+                // Play a chord when orbit completes
+                const baseFreq = body.musicalNote;
+                this.playTone(baseFreq, 0.15, 300);
+                this.playTone(baseFreq * 1.5, 0.1, 300); // Perfect fifth
+                this.playTone(baseFreq * 2, 0.05, 300); // Octave
+                
+                // Show musical notation
+                this.showMusicalNotation();
+                
+                // Add score for completing orbit
+                this.score += 10;
+            }
+            
+            showMusicalNotation() {
+                const notation = document.getElementById('musicalNotation');
+                notation.classList.add('visible');
+                setTimeout(() => notation.classList.remove('visible'), 1000);
+            }
+            
+            detectResonances() {
+                this.resonancePairs = [];
+                let totalResonance = 0;
+                
+                // Check each pair of bodies for orbital resonance
+                for (let i = 0; i < this.bodies.length; i++) {
+                    for (let j = i + 1; j < this.bodies.length; j++) {
+                        const body1 = this.bodies[i];
+                        const body2 = this.bodies[j];
+                        
+                        if (body1.orbitalPeriod > 0 && body2.orbitalPeriod > 0) {
+                            const ratio = body1.orbitalPeriod / body2.orbitalPeriod;
+                            
+                            // Check for simple integer ratios (musical intervals)
+                            const simpleRatios = [
+                                { ratio: 1, name: '1:1 unison', score: 100 },
+                                { ratio: 2, name: '2:1 octave', score: 80 },
+                                { ratio: 3/2, name: '3:2 fifth', score: 70 },
+                                { ratio: 4/3, name: '4:3 fourth', score: 60 },
+                                { ratio: 5/4, name: '5:4 major third', score: 50 }
+                            ];
+                            
+                            for (let r of simpleRatios) {
+                                if (Math.abs(ratio - r.ratio) < 0.1 || Math.abs(1/ratio - r.ratio) < 0.1) {
+                                    this.resonancePairs.push({
+                                        body1: body1,
+                                        body2: body2,
+                                        type: r.name,
+                                        strength: 1 - Math.min(Math.abs(ratio - r.ratio), Math.abs(1/ratio - r.ratio)) * 10
+                                    });
+                                    
+                                    totalResonance += r.score * this.resonancePairs[this.resonancePairs.length - 1].strength;
+                                    this.score += Math.floor(r.score / 10);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Update displays
+                document.getElementById('bodyCount').textContent = this.bodies.length;
+                document.getElementById('wellCount').textContent = this.wells.length;
+                document.getElementById('resonanceLevel').textContent = (totalResonance / 100).toFixed(2);
+                document.getElementById('score').textContent = Math.floor(this.score);
+                
+                if (this.resonancePairs.length > 0) {
+                    document.getElementById('resonanceType').textContent = this.resonancePairs[0].type;
+                } else {
+                    document.getElementById('resonanceType').textContent = 'searching...';
+                }
+                
+                // Calculate average tempo from orbital periods
+                if (this.bodies.length > 0) {
+                    let avgPeriod = 0;
+                    let count = 0;
+                    this.bodies.forEach(body => {
+                        if (body.orbitalPeriod > 0) {
+                            avgPeriod += body.orbitalPeriod;
+                            count++;
+                        }
+                    });
+                    if (count > 0) {
+                        const bpm = Math.round(60000 / (avgPeriod / count));
+                        document.getElementById('avgTempo').textContent = Math.min(300, bpm);
+                    }
+                }
+                
+                // Calculate chaos level
+                let chaosLevel = 0;
+                this.bodies.forEach(body => {
+                    const v = Math.sqrt(body.vx * body.vx + body.vy * body.vy);
+                    chaosLevel += v / this.bodies.length;
+                });
+                document.getElementById('chaosLevel').textContent = (chaosLevel / 100).toFixed(2);
+            }
+            
+            render() {
+                // Clear main canvas
+                this.mainCtx.clearRect(0, 0, this.mainCanvas.width, this.mainCanvas.height);
+                this.uiCtx.clearRect(0, 0, this.uiCanvas.width, this.uiCanvas.height);
+                
+                // Fade trails
+                this.trailCtx.fillStyle = 'rgba(0, 0, 0, 0.02)';
+                this.trailCtx.fillRect(0, 0, this.trailCanvas.width, this.trailCanvas.height);
+                
+                // Draw gravity wells
+                this.wells.forEach(well => {
+                    // Draw gravity field
+                    const gradient = this.mainCtx.createRadialGradient(
+                        well.x, well.y, well.radius,
+                        well.x, well.y, well.radius * 4
+                    );
+                    gradient.addColorStop(0, `hsla(${well.hue}, 70%, 50%, 0.3)`);
+                    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                    
+                    this.mainCtx.fillStyle = gradient;
+                    this.mainCtx.beginPath();
+                    this.mainCtx.arc(well.x, well.y, well.radius * 4, 0, Math.PI * 2);
+                    this.mainCtx.fill();
+                    
+                    // Draw well itself
+                    this.mainCtx.fillStyle = `hsl(${well.hue}, 70%, 20%)`;
+                    this.mainCtx.beginPath();
+                    this.mainCtx.arc(well.x, well.y, well.radius, 0, Math.PI * 2);
+                    this.mainCtx.fill();
+                    
+                    this.mainCtx.strokeStyle = `hsla(${well.hue}, 70%, 50%, 0.5)`;
+                    this.mainCtx.lineWidth = 2;
+                    this.mainCtx.stroke();
+                });
+                
+                // Draw orbital resonance connections
+                this.resonancePairs.forEach(pair => {
+                    this.mainCtx.strokeStyle = `rgba(100, 200, 255, ${pair.strength * 0.3})`;
+                    this.mainCtx.lineWidth = pair.strength * 2;
+                    this.mainCtx.setLineDash([5, 5]);
+                    this.mainCtx.beginPath();
+                    this.mainCtx.moveTo(pair.body1.x, pair.body1.y);
+                    this.mainCtx.lineTo(pair.body2.x, pair.body2.y);
+                    this.mainCtx.stroke();
+                    this.mainCtx.setLineDash([]);
+                });
+                
+                // Draw bodies and trails
+                this.bodies.forEach(body => {
+                    // Draw trail
+                    if (body.trail.length > 1) {
+                        this.trailCtx.strokeStyle = `hsla(${body.hue}, 70%, 50%, 0.3)`;
+                        this.trailCtx.lineWidth = 1;
+                        this.trailCtx.beginPath();
+                        body.trail.forEach((point, i) => {
+                            if (i === 0) {
+                                this.trailCtx.moveTo(point.x, point.y);
+                            } else {
+                                this.trailCtx.lineTo(point.x, point.y);
+                            }
+                        });
+                        this.trailCtx.stroke();
+                    }
+                    
+                    // Draw body with velocity-based glow
+                    const v = Math.sqrt(body.vx * body.vx + body.vy * body.vy);
+                    const glowSize = Math.min(20, body.radius + v / 20);
+                    
+                    const gradient = this.mainCtx.createRadialGradient(
+                        body.x, body.y, body.radius,
+                        body.x, body.y, glowSize
+                    );
+                    gradient.addColorStop(0, `hsla(${body.hue}, 70%, 60%, 1)`);
+                    gradient.addColorStop(1, `hsla(${body.hue}, 70%, 60%, 0)`);
+                    
+                    this.mainCtx.fillStyle = gradient;
+                    this.mainCtx.beginPath();
+                    this.mainCtx.arc(body.x, body.y, glowSize, 0, Math.PI * 2);
+                    this.mainCtx.fill();
+                    
+                    // Draw body core
+                    this.mainCtx.fillStyle = `hsl(${body.hue}, 70%, 70%)`;
+                    this.mainCtx.beginPath();
+                    this.mainCtx.arc(body.x, body.y, body.radius, 0, Math.PI * 2);
+                    this.mainCtx.fill();
+                });
+                
+                // Draw launch preview
+                if (this.isLaunching && this.launchStart) {
+                    this.uiCtx.strokeStyle = 'rgba(100, 200, 255, 0.5)';
+                    this.uiCtx.lineWidth = 2;
+                    this.uiCtx.setLineDash([5, 5]);
+                    this.uiCtx.beginPath();
+                    this.uiCtx.moveTo(this.launchStart.x, this.launchStart.y);
+                    this.uiCtx.lineTo(this.launchEnd.x, this.launchEnd.y);
+                    this.uiCtx.stroke();
+                    this.uiCtx.setLineDash([]);
+                    
+                    // Draw predicted trajectory (simple preview)
+                    const dx = this.launchEnd.x - this.launchStart.x;
+                    const dy = this.launchEnd.y - this.launchStart.y;
+                    const vx = -dx * 0.5;
+                    const vy = -dy * 0.5;
+                    
+                    let px = this.launchStart.x;
+                    let py = this.launchStart.y;
+                    let pvx = vx;
+                    let pvy = vy;
+                    
+                    this.uiCtx.strokeStyle = 'rgba(100, 200, 255, 0.3)';
+                    this.uiCtx.lineWidth = 1;
+                    this.uiCtx.beginPath();
+                    this.uiCtx.moveTo(px, py);
+                    
+                    // Simulate trajectory for preview
+                    for (let i = 0; i < 100; i++) {
+                        let fx = 0, fy = 0;
+                        
+                        this.wells.forEach(well => {
+                            const dx = well.x - px;
+                            const dy = well.y - py;
+                            const r = Math.sqrt(dx * dx + dy * dy);
+                            
+                            if (r > well.radius) {
+                                const F = (this.G * well.mass * 10) / (r * r);
+                                fx += F * (dx / r);
+                                fy += F * (dy / r);
+                            }
+                        });
+                        
+                        pvx += fx / 10 * 0.016;
+                        pvy += fy / 10 * 0.016;
+                        px += pvx * 0.016 * 5;
+                        py += pvy * 0.016 * 5;
+                        
+                        this.uiCtx.lineTo(px, py);
+                    }
+                    
+                    this.uiCtx.stroke();
+                }
+            }
+            
+            animate() {
+                this.updatePhysics();
+                this.render();
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const orchestra = new GravityWellOrchestra();
+        });
+    </script>
+</body>
+</html>
